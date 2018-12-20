@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="../ol/ol.css" type="text/css">
+    <script src="../ol/ol-debug.js"></script>
+    <title>layers example</title>
+</head>
+
+<body>
+    <script>
+        document.body.innerHTML = `<div id="map" style="height:400px;width:100%"></div>`;
+        var OSMtile = new ol.layer.Tile({
+            source: new ol.source.OSM()
+        })
+        var qqTile = new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: 'http://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/tile/{z}/{y}/{x}'
+            }),
+        })
+        var map = new ol.Map({
+            target: 'map',
+            layers: [],
+            // layers:[OSMtile,qqTile],
+            view: new ol.View({
+                center: ol.proj.transform([104, 30], 'EPSG:4326', 'EPSG:3857'),
+                // projection: 'EPSG:4326',
+                zoom: 10,
+            })
+        })
+        map.addLayer(OSMtile);
+        map.addLayer(qqTile);
+    </script>
+
+    </script>
+</body>
+
+</html>

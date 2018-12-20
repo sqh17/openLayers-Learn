@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="../src/main//resources/static//lib/ol/ol.css" type="text/css">
+    </style>
+    <script src="../src/main//resources/static//lib/ol/ol-debug.js"></script>
+    <title>view example</title>
+</head>
+
+<body>
+    <script>
+        document.body.innerHTML = `<div id="map" style="height:400px;width:100%"></div>`;
+
+        var map = new ol.Map({
+            target: 'map',
+            layers: [new ol.layer.Tile({
+                source: new ol.source.OSM()
+            })],
+            view: new ol.View({
+                center: [104.06, 30.67],
+                projection: 'EPSG:4326',
+                // center:ol.proj.transform([104.06, 30.67],'EPSG:4326','EPSG:3857'),
+                zoom: 10,
+                rotation:Math.PI/10
+            }),
+            interactions: ol.interaction.defaults({
+                doubleClickZoom: false,
+                altShiftDragRotate: false
+            }),
+            controls: ol.control.defaults({
+                attribution: false,
+                zoom: false,
+            })
+        })
+        console.log(map.getView().getResolution())
+        // map.getView().setCenter([104.06, 30.67])  // 设置初始中心[20,30]，也可以用ol.proj.transform
+        console.log(map.getView().constrainRotation(2,5))
+    </script>
+
+    </script>
+</body>
+
+</html>
