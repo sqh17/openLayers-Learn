@@ -180,11 +180,24 @@ map.addLayer(imageStatic);
 对应的数据源ol.source.Vector也是个对象。最常见属性的是`features`和`format`以及`url`。通常url和format一块，url按理传来的是geojson格式的矢量图，需要format格式化一下。最常用还是features。
 **ol.Feature**
 * feature 具有几何和其他属性属性的地理要素的矢量对象，类似于GeoJSON等矢量文件格式中的要素。
-* Geometry类是feature对象的基本组成部分，Vector类采用Geometry类来存储一个要素的几何信息.
+* Geometry类是feature对象的基本组成部分，Vector类采用Geometry类来存储一个要素的几何信息.通过`feature名.getGeometry()`获取
 * feature类有两个部分，Geometry对象和attributes属性,attributes包含要素相关的数据。比如：{type:'circle'},通过getProperties().attributes去获取。
 **geometry**
-* new ol.geom.Point(coordinate)  点
-* new ol.geom.LineString([[start],[end]]) 线
+* new ol.geom.Point([x1,y1])  点
+* new ol.geom.LineString([[x1,y1],[x2,y2]]) 线
+* new ol.geom.LinearRing()
+* new ol.geom.MultiLineString([[[x1,y1],[x2,y2]],[[x3,y3],[x4,y4]],[...]]) 多条线
+* new ol.geom.MultiPoint([[x1,y1],[x2,y2],[...]]) 多个点
+* new ol.geom.Polygon([[[x1,y1],[x2,y2],[x3,y3],[x4,y4],[...],[x1,y1]]]) 几何
+如果这些坐标是经纬度坐标的话，都需要坐标转换`applyTransform(ol.proj.getTransform('EPSG:4326', 'EPSG:3857'))`,(部分图形展示请看demo)
+```javascript
+var polygon = new ol.geom.Polygon([[[110, 39], [116, 39], [116, 33], [110, 33], [110, 39]]]);
+polygon.applyTransform(ol.proj.getTransform('EPSG:4326', 'EPSG:3857')); // 坐标转换
+var square = new ol.Feature({
+    geometry:polygon
+})
+layer.getSource().addFeature(square)
+```
 ###### style
     一个style对象，包含Style类，有7个属性：
 * geometry 返回要为此样式渲染的几何的要素属性或几何或函数
@@ -229,10 +242,11 @@ map.addLayer(imageStatic);
 ```javascript
 // 最简单的呈现方式，复杂的请参考demo
 var layer = new ol.layer.Vector({
-    source: new ol.source.Vector([
-        new ol.Feature({
+    source: new ol.source.Vector({
+        features:[new ol.Feature({
             geometry: new ol.geom.Point(ol.proj.transform([104, 30], 'EPSG:4326', 'EPSG:3857')),
-        })]),
+        })]
+    }),
     style: new ol.style.Style({
         image: new ol.style.Circle({
             radius: 30,
@@ -245,3 +259,300 @@ var layer = new ol.layer.Vector({
 })
 map.addLayer(layer)
 ```
+一个层layer有一个featrue，也可以有多个feature，因为`Feature类是Vector类用来在地图上展示几何对象，是Vector图层类一个属性。这个属性是个*要素数组*。 `
+对于style样式问题，feature的style的层级比layer.Vector的层级要高，所以feature的style会覆盖layer的style。
+ps：feature中的样式不能以属性名的形式写，因为feature类中没有style属性名，只有`geometry`,所以要以方法的形式去添加，setStyle()。
+
+其实关于layer，vector，API上都有其方法，包括set／get，虽然类有很多子类，子类又有很多子子类，也无妨，只要抓住想要操作的是哪一个部分就行，是feature，还是layer，还是geometry等等。
+
+`styleFunction`
+    在`feature`中可以使用`styleFunction`来设置自己随心所欲的样式，通过官网API文档可以看到，其类型为ol.FeatureStyleFunction，函数仅带有一个参数resolution，在函数体内this指的是当前的feature，根据文档说明，这个函数要返回一个style数组。
+    除了feature可以设置样式之外，layer也是可以设置样式的，同样地也支持styleFunction，但是需要注意的是，其定义和feature的不一样，类型为ol.style.StyleFunction，该函数具有两个参数，第一个参数为feature，第二个参数为resolution，同样地，该函数需要返回style数组。
+```javascript
+var layer = new ol.layer.Vector({
+    source: new ol.source.Vector()
+})
+var map = new ol.Map({
+    layers: [
+        new ol.layer.Tile({
+        source: new ol.source.OSM()
+        }), 
+        layer
+    ],
+    target: 'map',
+    view: new ol.View({
+        projection: 'EPSG:4326',
+        center: [104, 30],
+        zoom: 10
+    })
+});
+
+var anchor = new ol.Feature({
+    geometry: new ol.geom.Point([104, 30])
+});
+// 应用style function，动态的获取样式
+anchor.setStyle(function(resolution){
+    return [new ol.style.Style({
+        image: new ol.style.Icon({
+        src: '../img/anchor.png',
+        scale: map.getView().getZoom() / 10
+        })
+    })];
+});
+
+layer.getSource().addFeature(anchor);
+```
+#### controls
+地图控件，包括缩放按钮，标尺，版权说明，指北针等等，不会随着地图的放大而放大，缩小而缩小，就相当于position:fixed一样，固定在某个地方。 在实现上，并不是在画布上绘制的，而是使用传统的HTML元素来实现的，便于同地图分离，也便于界面实现。
+在openlayers 3 中，默认情况下，在地图上是不会显示这么多地图控件的，只会应用ol.control.defaults()这个函数返回的地图控件，默认包含了ol.control.Zoom，ol.control.Rotate和ol.control.Attribution这个控件。
+OpenLayers 3目前内置的地图控件类都在包ol.control下面：
+* ol.control.Attribution: 右下角的地图信息控件
+* ol.control.FullScreen: 全屏控件
+* ol.control.MousePosition: 鼠标位置控件
+* ol.control.OverviewMap: 鸟瞰图控件
+* ol.control.Rotate: 指北针控件
+* ol.control.ScaleLine: 比例尺控件
+* ol.control.Zoom: 缩放按钮控件
+* ol.control.ZoomSlider: 缩放滚动条控件
+* ol.control.ZoomToExtent: 放大到设定区域控件
+```javascript
+var map = new ol.Map({
+    target:'map',
+    layers:[new ol.layers.Tile({
+        source: new ol.source.OSM()
+    })],
+    view: new ol.View({
+        center:[0,0],
+        projection: 'EPSG:4326',
+        zoom:10,
+    })
+    controls: ol.control.defaults({
+        attribution: false, // 信息false
+        rotate: false,    // 旋转false
+        zoom: false      //   缩放false
+    })
+})
+```
+map.getControls()是获取控件的信息,
+如果想要添加其他的控件，可以使用map中的一个方法，map.addControl()
+```javascript
+map.addControl(ol.control.OverviewMap)  // 添加鸟瞰图控件
+```
+控件不是在画布上绘制的，而是用html实现的，所以样式问题可以按照css+html的形式去修改。
+
+#### interactions
+
+交互，就是人与机之间的交互模式，比如用鼠标左键双击地图可以放大地图，按住鼠标左键拖动地图可以移动浏览地图，用滚动鼠标中间的滑轮可以放大缩小地图等等。这些都是openLayers内置的，其实也可以自己去interact。
+##### 内置的交互
+内置的交互在map中都是默认的。
+```javascript
+var map = new ol.Map({
+    interactions: ol.interaction.defaults().extends()
+    // .... 其余代码
+})
+```
+ol.interaction.defaults()默认包含以下交互：
+* 鼠标
+    * 按住alt+shift键，用鼠标左键拖动地图，就能让地图旋转，对应的交互类为ol.interaction.DragRotate。
+    * 用鼠标左键双击地图，就可以放大地图，对应的交互类为ol.interaction.DoubleClickZoom。
+    * 用鼠标左键，拖拽地图，就可以平移地图，对应的交互类为ol.interaction.DragPan。
+    * 滚动鼠标中间的滑轮，就可以缩放地图，对应的交互类为ol.interaction.MouseWheelZoom。
+    * 按住shift键，同时用鼠标左键在地图上拖动，就可以放大地图，对应的交互类为ol.interaction.DragZoom。
+* 触摸屏
+    * 在触摸屏上，用两个手指在触摸屏上旋转，就可以旋转地图，对应的交互类为ol.interaction.PinchRotate。
+    * 在触摸屏上，用两个手指在触摸屏上缩放，就可以缩放地图，对应的交互类为ol.interaction.PinchZoom。
+* 键盘（`注意：需要设置tabindex，才能使div获得键盘事件`,就是在声明id的那个div中添加：tabindex="0"）
+    * 用键盘上的上下左右键，就可以平移地图，对应的交互类为ol.interaction.KeyboardPan。
+    * 用键盘上的+/-键，就可以缩放地图，对应的交互类为ol.interaction.KeyboardZoom。
+
+如果想要取消某个交互事件
+```javascript
+var map = new ol.Map({
+    interactions: ol.interaction.defaults({
+        mouseWheelZoom: false, // 取消滚动鼠标中间的滑轮交互
+        shiftDragZoom: false, // 取消shift+wheel左键拖动交互
+    })
+    // .... 其余代码
+})
+```
+extend()为扩展
+```javascript
+var map = new ol.Map({
+    interactions: ol.interaction.defaults().extend()
+    // .... 其余代码
+})
+```
+map.getInteraction()是获取控件的信息,
+如果想要添加其他的交互，可以使用map中的一个方法，map.addInteraction()
+
+```javascript
+map.addInteraction(new ol.interaction.MouseWheelZoom); 
+```
+
+关于new Interaction(),总共有7个子类，可以用在extend([])中，也可以用addInteraction()
+* DoubleClickZoom interaction，双击放大交互功能；
+* DragAndDrop interaction，以“拖文件到地图中”的交互添加图层；
+* DragBox interaction，拉框，用于划定一个矩形范围，常用于放大地图；
+* DragPan interaction，拖拽平移地图；
+* DragRotateAndZoom interaction，拖拽方式进行缩放和旋转地图；
+* DragRotate interaction，拖拽方式旋转地图；
+* DragZoom interaction，拖拽方式缩放地图；
+* `Draw` interaction，绘制地理要素功能；
+* KeyboardPan interaction，键盘方式平移地图；
+* KeyboardZoom interaction，键盘方式缩放地图；
+* `Select` interaction，选择要素功能；
+* `Modify` interaction，更改要素；
+* MouseWheelZoom interaction，鼠标滚轮缩放功能；
+* PinchRotate interaction，手指旋转地图，针对触摸屏；
+* PinchRoom interaction，手指进行缩放，针对触摸屏；
+* Pointer interaction，鼠标的用户自定义事件基类；
+* Snap interaction，鼠标捕捉，当鼠标距离某个要素一定距离之内，自动吸附到要素。
+
+这些子类都可以查API，有详细解释。这些子类中，有个常用的属性`condition`或方法`handleEvent(mapBrowserEvent)`
+
+**condition**
+
+代表的是事件名称，比如：click，doubleClick，主要是依据`ol.events`。主要有以下几种，默认是singleClick
+* altKeyOnly  仅按下alt键则返回true
+* shiftKeyOnly 仅按下shift键则返回true
+* altShiftKeysOnly  仅按下alt键+shift则返回true
+* always 
+* never
+* click，只要是点击，包括singleClick，doubleClick都返回true
+* doubleClick
+* singleClick
+* focus 如果地图具有焦点，则返回true。此条件需要具有tabindex属性的地图目标元素，例如<div id="map" tabindex="1">。
+* mouseOnly 从鼠标设备发起为true
+* noModifierKeys 没有组合键则返回true
+* pointerMove 指针移动时返回true
+* targetNotEditable 如果目标元素不可编辑，则返回true,即不是<input>- ， <select>- 或 - <textarea>元素false。
+* platformModifierKeyOnly
+* primaryAction 
+
+**handleEvent(mapBrowserEvent)**
+
+
+
+###### Select
+是个选择图形的类，用于交互.
+`new ol.interaction.Select(options)`
+options是个对象参数，包括：
+
+* style
+* layers 应从中选择要素的图层列表。或者，可以提供过滤功能。将为地图中的每个图层调用该函数，并应返回true您想要选择的图层。如果该选项不存在，则所有可见图层都将被视为可选择。
+* condition 类型为 ol.events.ConditionType，规定了什么情况下触发 select 操作，默认不需要特殊条件进行触发。
+* addCondition 
+* removeCondition
+* toggleCondition 获取module:ol/MapBrowserEvent~MapBrowserEvent和返回布尔值的函数，以指示是否应该处理该事件。这是condition事件的补充。默认情况下， module:ol/events/condition~shiftKeyOnly即按下shift以及condition事件，如果当前未选中，则将该功能添加到当前选择，如果是，则将其删除。见add而remove 如果你想使用的，而不是一个触发不同的事件。
+* multi 用于确定默认行为是否应仅在单击的地图位置选择单个feature或所有（重叠）feature。默认值false表示单选。
+* features 
+* filter 过滤 见demo
+* wrapX 当地图水平显示多个相同位置时，是否显示多个勾绘任务，默认为 false
+**select**点击事件
+```javascript
+selectSingleClick.on('select', function (event) {
+    console.log(event)
+})
+```
+该select也有set／get方法，用来获取或者设置属性，比如获取选中的features，获取所有属性名称和值的对象getProperties。
+
+###### Draw 
+是个绘制图形的类，默认支持绘制的图形类型包含 Point（点）、LineString（线）、Polygon（面）和Circle（圆）。触发的事件包含 drawstart和drawend，分别在勾绘开始时候（单击鼠标）和结束时候触发（双击鼠标）。
+`new ol.interaction.Draw(options)`
+options是个对象参数，包括：
+
+* type: 几何类型（加粗为默认）
+    * `Point`
+    * `LineString`
+    * LinearRing
+    * `Polygon`
+    * MultiPoint
+    * MultiLineString
+    * MultiPolygon
+    * GeometryCollection
+    * `Circle`
+* source 数据源,如果想要保存绘制的图形，需要有一个载体来存储绘制的图形，比如新建一个layer，这个layer的source就是该绘制的source。
+    * ```javascript
+        var drawLayer = new ol.layer.Vector({
+            source:new ol.source.Vector()
+        }) // 新建一个层
+        map.addLayer(drawLayer)
+        var draw = new ol.interaction.Draw({
+            source: drawLayer.getSource(), // 数据源就是新建层的数据源
+            type: 'Point',
+        })
+        map.addInteraction(draw);
+      ```
+* style
+* stopClick
+* condition 类型为 ol.events.ConditionType，规定了什么情况下触发 draw 操作，默认不需要特殊条件进行触发。
+* clickTolerance: 数值类型，单位是像素，判断用户鼠标（PC）或者手指（移动设备）的行为是添加点，还是按住鼠标或者手指不松开进行拖拽地图，默认值是 6 像素，也就是说当按下鼠标和抬起鼠标左键之间的这段时间段内，如果地图被拖动没有超过 6 像素，那么默认为添加一个点，相反如果超过了 6 像素，那么不会添加点，只是平移一下地图。
+* snapTolerance 数值，像素为单位，默认值是 12 像素，当一定位置内最后一个点吸附到第一个点,对多边形时有用
+* features 
+* maxPoints 表示绘制单个要素（面和线）最多的点数限制，默认没有限制
+* minPoints 表示绘制单个要素（面和线）需要的最少点数，面默认为 3，线默认为 2
+* geometryName 字符串类型，绘制的 geometry 的名称。
+* geometryFunction 因为默认type只有四种：Point（点）、LineString（线）、Polygon（面）和Circle（圆），此方法就是可以用来绘制规则或者自己想要绘制的图形的方法，该函数有两个参数，一个是坐标集合、一个是勾绘的 geometry 类型，返回构造好的 geometry 对象，用来初始化要素。
+    * ```javascript
+        var draw = new ol.interaction.Draw({ // 绘制矩形
+            type: 'LineString',
+            maxPoints: 2,
+            geometryFunction: function(coordinates, geometry){
+                if(!geometry){
+                    geometry = new ol.geom.Polygon(null);
+                }
+                var start = coordinates[0];
+                var end = coordinates[1];
+                geometry.setCoordinates([
+                    [start, [start[0], end[1]], end, [end[0], start[1]], start]
+                ]);
+                return geometry;
+            }
+            // 其余代码块
+        })
+      ```
+    * 上面的例子用LineString的形式去绘制矩形，这里的原理就是捕捉鼠标点击的点，然后获取限制的两个点的坐标，用来初始化一个矩形框。
+* wrapX 当地图水平显示多个相同位置时，是否显示多个勾绘任务，默认为 false
+* freehand 默认是false，是否以曲线的形式，不是规范化的，看demo-freehandDraw.html
+* freehandCondition 类型同condition，也是 ol.events.ConditionType，这个选项规定了什么情况下触发不用重复点击绘制模式，即拖拽鼠标就可以绘制图形的模式，默认情况下是按下 shift 按键，这种模式对于不容易绘制的曲线比较方便，而且释放 shift 情况下，如果没有完成绘制，可以继续使用点击绘制。(就是需要辅助键，例如shift，ctrl时，会以曲线形式绘画)--demo-secondDraw.html，按shift绘画可以发现。
+**drawstart/drawend**
+```javascript
+// 绘制结束时进行回调
+draw.addEventListener('drawend', function (evt) {
+    // 获取绘制图形的所有坐标点（终止点是起始点）
+    var feature = evt.feature
+    var geometry = feature.getGeometry()
+    var coordinate = geometry.getCoordinates()
+    // console.log(coordinate)
+    var lent = coordinate[0].length // 坐标点个数
+})
+```
+
+###### modify
+用于修改要素几何的交互。要修改已添加到现有源的功能，请使用该source选项构建修改交互，如果要修改集合中的要素（例如，选择交互使用的集合），请使用该features选项构建交互。`必须使用source或features构建交互`
+`默认情况下，交互将允许在alt 按下键时删除顶点。要配置具有不同删除条件的交互，请使用该deleteCondition选项。`
+`new ol.interaction.Modify(options)`
+options是一个参数对象，如下：
+
+* condition 
+* style
+* source
+* features
+* wrapX
+* insertVertexCondition 一个函数，它接受module:ol/MapBrowserEvent~MapBrowserEvent并返回一个布尔值，以指示是否可以将新顶点添加到草图要素中。默认是module:ol/events/condition~always。  -----待解决
+* deleteCondition  获取module:ol/MapBrowserEvent~MapBrowserEvent和返回布尔值的函数，以指示是否应该处理该事件。默认情况下， module:ol/events/condition~singleClick与 module:ol/events/condition~altKeyOnly在顶点缺失的结果。看demo-按alt键
+
+
+###### snap
+在修改或绘制矢量要素时处理矢量要素的捕捉。这些功能可以来自一个module:ol/source/Vector或module:ol/Collection~Collection 任何交互对象，允许用户使用鼠标与功能进行交互可以从捕捉中受益，只要它之前添加。
+
+快照交互会修改地图浏览器事件coordinate和pixel 属性，以强制对其进行的任何交互进行快照。
+`new ol.interaction.Snap(options)`   看API
+options:
+* features 应提供此选项或来源。
+* edge 抓住边缘。默认值时true
+* vertex 捕捉到顶点。默认值是true
+* source 捕捉此来源的功能。应提供此选项或功能
+
+
+##### forEachFeatureAtPixel(pixel, callback, opt_options)

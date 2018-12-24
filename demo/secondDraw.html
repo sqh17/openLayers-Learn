@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="../ol/ol.css" type="text/css">
+    </style>
+    <script src="../ol/ol-debug.js"></script>
+    <title>secondDraw example</title>
+</head>
+
+<body>
+    <div>
+        <form class="form-inline">
+            <label>Geometry type &nbsp;</label>
+            <select id="type">
+                <option value="Point">Point</option>
+                <option value="LineString">LineString</option>
+                <option value="Polygon">Polygon</option>
+                <option value="Circle">Circle</option>
+                <option value="None">None</option>
+            </select>
+        </form>
+    </div>
+    <div id="map" style="height:400px;width:100%"></div>
+    <script>
+
+
+        var map = new ol.Map({
+            target: 'map',
+            layers: [new ol.layer.Tile({
+                source: new ol.source.OSM()
+            })],
+            view: new ol.View({
+                center: [104.06, 30.67],
+                projection: 'EPSG:4326',
+                zoom: 10
+            })
+        })
+        var drawLayer = new ol.layer.Vector({
+            source: new ol.source.Vector()
+        })
+        map.addLayer(drawLayer)
+        var typeSelect = document.getElementById('type');
+        var draw = null;
+        function addInteraction() {
+            var value = typeSelect.value;
+            if (value !== 'None') {
+                draw = new ol.interaction.Draw({
+                    source: drawLayer.getSource(),
+                    type: typeSelect.value
+                });
+                map.addInteraction(draw);
+            }
+        }
+
+        typeSelect.onchange = function () {
+            map.removeInteraction(draw);
+            addInteraction();
+        };
+
+        addInteraction();
+    </script>
+
+    </script>
+</body>
+
+</html>

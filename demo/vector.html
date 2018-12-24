@@ -21,28 +21,132 @@
                 zoom: 10,
             })
         })
+        // 创建一个矢量层
+        // source中的feature是个数组，可以传多个feature，style是声明的这个层的所有feature，，如果feature中声明了样式，会覆盖该style。同理，opacity也是
         var layer = new ol.layer.Vector({
             source: new ol.source.Vector(),
-            style: new ol.style.Style({
+            style:new ol.style.Style({
                 image: new ol.style.Circle({
                     radius: 30,
                     fill: new ol.style.Fill({
                         color: 'red'
                     })
+                }),
+                stroke:new ol.style.Stroke({
+                    color:'purple',
+                    width:5
                 })
             }),
-            opacity:0.5
-        }) 
+            // opacity: 0.5
+        })
+        // 创建一个feature ---圆
+        // geometry是必填的属性名，style必须是通过方法的形式添加进去，因为feature中没有这个属性名
         var circle = new ol.Feature({
             geometry: new ol.geom.Point(ol.proj.transform([104, 30], 'EPSG:4326', 'EPSG:3857')),
-            attributes:{
-                type:'circle'
-            }
         })
-        // circle.type = 'circle'
-        layer.getSource().addFeature(circle);
-        console.log(circle.getProperties().attributes)
+        // 将圆feature添加到layer的source中
+        layer.getSource().addFeature(circle)
+        // 添加样式
+        circle.setStyle(new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 10,
+                    fill: new ol.style.Fill({
+                        color: 'blue'
+                    })
+                })
+            }))
+        
+        
+
+        // 添加一条线
+        var line = new ol.Feature({
+            geometry:new ol.geom.LineString(
+                [
+                    [11536714, 3514809],
+                    [11564098, 3497359]
+                ]
+            )
+        })
+        line.setStyle(new ol.style.Style({
+            stroke:new ol.style.Stroke({
+                color:'green',
+                width:15
+            })
+        }))
+        layer.getSource().addFeature(line);
+
+        // 添加矩形
+        var polygon = new ol.geom.Polygon([[[110, 39], [116, 39], [116, 33], [110, 33], [110, 39]]]);
+        polygon.applyTransform(ol.proj.getTransform('EPSG:4326', 'EPSG:3857')); // 坐标转换
+        var square = new ol.Feature({
+            geometry:polygon
+        })
+        // square.setStyle(squareStyle)
+        layer.getSource().addFeature(square)  // 坐标太大，需要缩放才能看到
+        console.log('getArea',polygon.getArea())  // 获取面积
+        
+        // 线环
+        // var linearRing = new ol.geom.LinearRing([[[110, 39], [116, 39], [116, 33], [110, 33], [110, 39]]] )
+        // linearRing.applyTransform(ol.proj.getTransform('EPSG:4326', 'EPSG:3857')); // 坐标转换
+        
+        // 两条线
+        var multiLineString = new ol.geom.MultiLineString([[[110,39],[126,60]],[[130,39],[155,50]]])
+        multiLineString.applyTransform(ol.proj.getTransform('EPSG:4326', 'EPSG:3857')); // 坐标转换
+        var multiLineString1 = new ol.Feature({
+            geometry:multiLineString
+        })
+        layer.getSource().addFeature(multiLineString1); // 坐标太大，需要缩放才能看到
+        console.log('type',multiLineString.getType())  // 获取所选图形的类型
+        
+        //多个点
+        var point = new ol.geom.MultiPoint([[90,30],[100,25]]);
+        point.applyTransform(ol.proj.getTransform('EPSG:4326','EPSG:3857'));
+        var point2 = new ol.Feature({
+            geometry:point
+        })
+        layer.getSource().addFeature(point2)
         map.addLayer(layer)
+        console.log(layer.getSource().getFeatures())  // 该方法是获取所有的feature;
+
+
+        // 也有一种方式，就是一个layer只有一个feature
+        var starLayer = new ol.layer.Vector({
+            source: new ol.source.Vector(),
+            style: new ol.style.Style({
+                image: new ol.style.RegularShape({
+                    points: 5,
+                    radius1: 20,
+                    radius2: 10,
+                    fill: new ol.style.Fill({
+                        color: 'red'
+                    })
+                })
+            })
+        });
+        var start = new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.transform(
+                [102.06, 28.05], 'EPSG:4326', 'EPSG:3857'))
+        });
+        start.setStyle(new ol.style.Style({
+            image: new ol.style.RegularShape({
+                points: 8,
+                radius1: 20,
+                radius2: 10,
+                fill: new ol.style.Fill({
+                    color: '#000'
+                })
+            })
+        }))
+        starLayer.getSource().addFeature(start);
+        start.getGeometry().setProperties({
+            uid:1111,
+            color:'#ccc'
+        });
+        console.log('getGeometry',start.getGeometry()); // 这是获取star的geometry
+        console.log('getGeometry',start.getGeometry().getProperties()); 
+        console.log('getStyle',start.getStyle());
+        console.log('getStyleFunction',start.getStyleFunction())  //  undefined
+        map.addLayer(starLayer);
     </script>
 
     </script>

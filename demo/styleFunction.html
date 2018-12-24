@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="../ol/ol.css" type="text/css">
+    </style>
+    <script src="../ol/ol-debug.js"></script>
+    <title>styleFunction example</title>
+</head>
+
+<body>
+    <div id="map2"></div>
+    <script>
+        // 创建layer使用的style function，根据feature的自定义type，返回不同的样式
+        var layerStyleFunction = function (feature, resolution) {
+            var type = feature.get('type');
+            var style = null;
+            // 点
+            if (type === 'point') {
+                style = new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: 1,
+                        fill: new ol.style.Fill({
+                            color: 'red'
+                        })
+                    })
+                });
+            } else if (type === 'circle') { // 圆形
+                style = new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: 10,
+                        stroke: new ol.style.Stroke({
+                            color: 'red',
+                            size: 1
+                        })
+                    })
+                });
+            } else { // 其他形状
+                style = new ol.style.Style({
+                    image: new ol.style.RegularShape({
+                        points: 5,
+                        radius: 10,
+                        fill: new ol.style.Fill({
+                            color: 'blue'
+                        })
+                    })
+                });
+            }
+
+            // 返回 style 数组
+            return [style];
+        };
+
+        var layer2 = new ol.layer.Vector({
+            source: new ol.source.Vector(),
+            style: layerStyleFunction // 应用上面创建的 style function
+        });
+
+        var map2 = new ol.Map({
+            layers: [
+                new ol.layer.Tile({
+                    source: new ol.source.OSM()
+                }),
+                layer2
+            ],
+            target: 'map2',
+            view: new ol.View({
+                projection: 'EPSG:4326',
+                center: [104, 30],
+                zoom: 13
+            })
+        });
+
+        // 添加三个feature，并设置自定义属性 type
+        var rect = new ol.Feature({
+            geometry: new ol.geom.Point([104, 30])
+        });
+        layer2.getSource().addFeature(rect);
+
+        var circle = new ol.Feature({
+            geometry: new ol.geom.Point([104, 30])
+        });
+        circle.set('type', 'circle');
+        layer2.getSource().addFeature(circle);
+
+        var point = new ol.Feature({
+            geometry: new ol.geom.Point([104, 30])
+        });
+        point.set('type', 'point');
+        layer2.getSource().addFeature(point);
+
+    </script>
+    </script>
+</body>
+
+</html>
