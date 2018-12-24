@@ -425,7 +425,7 @@ map.addInteraction(new ol.interaction.MouseWheelZoom);
 * mouseOnly 从鼠标设备发起为true
 * noModifierKeys 没有组合键则返回true
 * pointerMove 指针移动时返回true
-* targetNotEditable 如果目标元素不可编辑，则返回true,即不是<input>- ， <select>- 或 - <textarea>元素false。
+* targetNotEditable 如果目标元素不可编辑，则返回true,即不是input,select或textarea元素false。
 * platformModifierKeyOnly
 * primaryAction 
 
