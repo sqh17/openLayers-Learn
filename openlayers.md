@@ -3,6 +3,33 @@
 ------------------
 
 
+#### 目录
+
+* [map](#1)
+* [view](#2)
+* [layers](#3)
+
+    * [ol.layer.Tile](#11)
+    * [ol.layer.Image](#12)
+    * [ol.layer.Vector](#13)
+    
+        * [feature](#111)
+        * [style](#112)
+* [controls](#4)
+* [interactions](#5)
+
+    * [内置的交互](#21)
+    * [Select](#22)
+    * [Draw](#23)
+    * [Modify](#24)
+    * [Snap](#25)
+* [事件](#6)
+
+    * [简单实例](#31)
+    * [注销事件](#32)
+    * [自定义事件](#33)
+* [总结](#7)
+
 ```javascript
 var map = new ol.Map({
     target:'map',
@@ -47,9 +74,11 @@ var map = new ol.Map({
 
 ```
 
-### map
+### <a name="1">map</a>
+
 这个map不是里面的Map，而是初始化后的map，`map = new ol.Map()`；在openlayers3 的API中，有很多方法，可以通过方法去操作layers，view，interactions，controls。
 打印map,可以发现map里面有很多属性，可以简单知道map上有多少个层，target是谁，size是多少等等，也可以通过API方法去获取
+
 ```javascript
 var target = map.getTarget();    // 获取 target的值  -- map
 var size = map.getSize();  // 获取可视区域的宽高。
@@ -62,11 +91,13 @@ map.addLayers( new ol.layer.Vector({
 }))  // 添加一个矢量图层
 
 ```
+
 *map里有一个函数方法，可以通过点击某个图层或某个点而获取到当前的层和信息。
 `forEachFeatureAtPixel`(pixel, callback, opt_options) 
 params: pixel：坐标
         callback：回调函数，将使用两个参数调用回调，第一个是feature，第二个是layers
         opt_options：可选
+
 ```javascript
 map.on('click',function(e){
     var feature = map.forEachFeatureAtPixel(e.pixel,function(f){
@@ -76,9 +107,11 @@ map.on('click',function(e){
 })
 ```
 
-#### view
-`视图`，View对象表示地图的简单2D视图。这是用于更改地图的中心，分辨率和旋转的对象。
-    一个视图是由三种状态确定：center，resolution，zoom和rotation。每个状态具有相应的获取和设置。
+#### <a name="2">view</a>
+
+`视图`.View对象表示地图的简单2D视图。这是用于更改地图的中心，分辨率和旋转的对象。
+ 一个视图是由三种状态确定：center，resolution，zoom和rotation。每个状态具有相应的获取和设置。
+
 * *center*：初始坐标，比如：成都的位置 [104.06, 30.67],这样地图初始化会以成都为中心展开(projection:'EPSG:4326')。
 * *projection*：一个视图有一个projection。投影确定中心的坐标系，其单位确定分辨率的单位（每像素的投影单位）。
     projection有两种值，默认投影是球形墨卡托（EPSG：3857），是地图的xy坐标，另一种就是经纬度坐标，（EPSG:4326）是WGS84的一种。
@@ -89,6 +122,7 @@ map.on('click',function(e){
     `ol.proj.transform(coordinates,'EPSF:3857','EPSG:4326')`
 * *zoom*:计算视图初始分辨率的缩放级别。至于resolution初始分辨率，在其未声明时，zoom起作用。对应的它也有maxZoom，minZoom。
 * *rotation*:初始旋转度，默认是0，（顺时针正向旋转，0表示北向）,弧度制
+
 ```javascript
 var view = new ol.View({
     center:[104.06,30.67],
@@ -98,7 +132,9 @@ var view = new ol.View({
     rotation:Math.PI/10,
 })
 ```
+
 视图对应的也有get和set系列的方法，用于获取和设置zoom，center，rotation等等，除此之外，还有约束方法，constrainRotation(),约束旋转度，API上有详细解释。
+
 ```javascript
 map.getView()   // 就是当前视图，view
 view.getZoom()  // 获取缩放级别;
@@ -107,21 +143,25 @@ view.setCenter([20,30])  // 设置初始中心[20,30]，也可以用ol.proj.tran
 view.constrainRotation(2,5) // 获取此视图的约束旋转
 ```
 
-#### layers
+#### <a name="3">layers</a>
+
 层，是一个对象数组，将那些与数据显示方式相关的属性组合在一起，形成一个层，openlayer就是由一个一个的层形成的，包括地图，瓦片地图，图片，图形都是由layer形成而呈现在map上的
     简单的来说，layer可以是一个地图，也可以是一个图形，也可以是个图片，因为是个数组，可以互相叠加的，[map,image,shape]，在相同位置的情况下，后者会覆盖前者。
     
-![layer](https://github.com/sqh17/openLayers-Learn/tree/master/images/ol_layer_Base.png)
+[layer](https://github.com/sqh17/openLayers-Learn/tree/master/images/ol_layer_Base.png)
 
 根据这个图片可知，layers有三种形式
+
 * **ol.layer.Tile** 瓦片，瓦片地图源于一种大地图解决方案，针对一整块非常大的地图进行切片，分成很多相同大小的小块地图，在用户访问的时候，再一块一块小地图加载，拼接在一起，从而还原成一整块大的地图。这样做的优点在于，用户在同一时间，同一个可见视图内，只能看到地图的一部分，而不是全部。提高用户体验。通常用这个作为底图。
 * **ol.layer.Image** 对应的是一整张图，而不像瓦片那样很多张图，从而无需切片，也可以加载一些地图，适用于一些小场景地图
 * **ol.layer.Vector** 矢量，使用直线和曲线来描述图形，这些图形的元素是一些点、线、矩形、多边形、圆和弧线等等，它们都是通过数学公式计算获得的。由于矢量图形可通过公式计算获得，所以矢量图形文件体积一般较小。矢量图形最大的优点是无论放大、缩小或旋转等不会失真。
 
 每个形式都需要一个source，数据源，所以每一个形式都对应一个数据源，Source和Layer是一对一的关系，有一个Source，必然需要一个Layer，然后把这个Layer添加到Map上，就可以显示出来了。
 
-##### ol.layer.Tile
+##### <a name="11">ol.layer.Tile</a>
+
 对于瓦片数据源，也有很多属性，
+
 * opacity，改变透明度，默认是1
 * visible，可视，默认是true
 * zIndex，图层渲染的z-index。在渲染时，将按照Z-index然后按位置对图层进行排序
@@ -145,6 +185,7 @@ var qqTile = new ol.layer.Tile({
 map.addLayer(OSMtile);  // 添加open street Map作为底图
 map.addLayer(qqTile)  // 添加腾讯地图
 ```
+
 map.addLayer()这个方法就相当于初始化中的layers的数组中添加一样,如下代码，这俩是等价的，只不过后者更灵活些。
 
 ```javascript
@@ -156,7 +197,8 @@ map.addLayer(qqTile)
 ```
 ps！当添加地图作为底图时，会发现腾讯底图覆盖率OSM地图，是因为layer是一个数组，遵遁先来先渲染，后来居上的原则。
 `layer也有get/set方法，用来设置或获取属性，其实通过API就可以知道响应方法去操作。`
-##### ol.layer.Image
+
+##### <a name="12">ol.layer.Image</a>
 关于静态图片层，运用的不多，一般作为写死的，不经常换的实例中。
 同样，ol.layer.Image也有数据源，一般就是ol.source.ImageStatic，ol.source.ImageCanvas等等。
 ```javascript  
@@ -172,13 +214,13 @@ var imageStatic = new ol.layer.Image({
 map.addLayer(imageStatic);
 ```
 
-##### ol.layer.Vector
+##### <a name="13">ol.layer.Vector</a>
     矢量图层，是用来渲染矢量数据的图层类型，在OpenLayers里，它是可以定制的，可以控制它的透明度，颜色，以及加载在上面的要素形状等。常用于从数据库中请求数据，接受数据，并将接收的数据解析成图层上的信息。比如将鼠标移动到中国，相应的区域会以红色高亮显示出来，高亮便是矢量图层的行为
 既然是个矢量图，可以改变大小，颜色，以及形状。包含source数据源类，style类设置样式，以及其他的zIndex，opacity等等。
 `Feature类是Vector类用来在地图上展示几何对象，是Vector图层类一个属性。这个属性是个*要素数组*。 `
 ###### source
 对应的数据源ol.source.Vector也是个对象。最常见属性的是`features`和`format`以及`url`。通常url和format一块，url按理传来的是geojson格式的矢量图，需要format格式化一下。最常用还是features。
-**ol.Feature**
+**<a name="111">ol.Feature</a>**
 * feature 具有几何和其他属性属性的地理要素的矢量对象，类似于GeoJSON等矢量文件格式中的要素。
 * Geometry类是feature对象的基本组成部分，Vector类采用Geometry类来存储一个要素的几何信息.通过`feature名.getGeometry()`获取
 * feature类有两个部分，Geometry对象和attributes属性,attributes包含要素相关的数据。比如：{type:'circle'},通过getProperties().attributes去获取。
@@ -190,6 +232,7 @@ map.addLayer(imageStatic);
 * new ol.geom.MultiPoint([[x1,y1],[x2,y2],[...]]) 多个点
 * new ol.geom.Polygon([[[x1,y1],[x2,y2],[x3,y3],[x4,y4],[...],[x1,y1]]]) 几何
 如果这些坐标是经纬度坐标的话，都需要坐标转换`applyTransform(ol.proj.getTransform('EPSG:4326', 'EPSG:3857'))`,(部分图形展示请看demo)
+
 ```javascript
 var polygon = new ol.geom.Polygon([[[110, 39], [116, 39], [116, 33], [110, 33], [110, 39]]]);
 polygon.applyTransform(ol.proj.getTransform('EPSG:4326', 'EPSG:3857')); // 坐标转换
@@ -198,7 +241,8 @@ var square = new ol.Feature({
 })
 layer.getSource().addFeature(square)
 ```
-###### style
+
+###### <a name="112">style</a>
     一个style对象，包含Style类，有7个属性：
 * geometry 返回要为此样式渲染的几何的要素属性或几何或函数
 * fill 填充样式。
@@ -302,7 +346,7 @@ anchor.setStyle(function(resolution){
 
 layer.getSource().addFeature(anchor);
 ```
-#### controls
+#### <a name="4">controls</a>
 地图控件，包括缩放按钮，标尺，版权说明，指北针等等，不会随着地图的放大而放大，缩小而缩小，就相当于position:fixed一样，固定在某个地方。 在实现上，并不是在画布上绘制的，而是使用传统的HTML元素来实现的，便于同地图分离，也便于界面实现。
 在openlayers 3 中，默认情况下，在地图上是不会显示这么多地图控件的，只会应用ol.control.defaults()这个函数返回的地图控件，默认包含了ol.control.Zoom，ol.control.Rotate和ol.control.Attribution这个控件。
 OpenLayers 3目前内置的地图控件类都在包ol.control下面：
@@ -340,10 +384,10 @@ map.addControl(ol.control.OverviewMap)  // 添加鸟瞰图控件
 ```
 控件不是在画布上绘制的，而是用html实现的，所以样式问题可以按照css+html的形式去修改。
 
-#### interactions
+#### <a name="5">interactions</a>
 
 交互，就是人与机之间的交互模式，比如用鼠标左键双击地图可以放大地图，按住鼠标左键拖动地图可以移动浏览地图，用滚动鼠标中间的滑轮可以放大缩小地图等等。这些都是openLayers内置的，其实也可以自己去interact。
-##### 内置的交互
+##### <a name="21">内置的交互</a>
 内置的交互在map中都是默认的。
 ```javascript
 var map = new ol.Map({
@@ -437,7 +481,7 @@ function (mapBrowserEvent){
 ```
 
 
-###### Select
+###### <a name="22">Select</a>
 是个选择图形的类，用于交互.
 `new ol.interaction.Select(options)`
 options是个对象参数，包括：
@@ -460,7 +504,7 @@ selectSingleClick.on('select', function (event) {
 ```
 该select也有set／get方法，用来获取或者设置属性，比如获取选中的features，获取所有属性名称和值的对象getProperties。
 
-###### Draw 
+###### <a name="23">Draw</a> 
 是个绘制图形的类，默认支持绘制的图形类型包含 Point（点）、LineString（线）、Polygon（面）和Circle（圆）。触发的事件包含 drawstart和drawend，分别在勾绘开始时候（单击鼠标）和结束时候触发（双击鼠标）。
 `new ol.interaction.Draw(options)`
 options是个对象参数，包括：
@@ -532,7 +576,7 @@ draw.addEventListener('drawend', function (evt) {
 })
 ```
 
-###### modify
+###### <a name="24">Modify</a>
 用于修改要素几何的交互。要修改已添加到现有源的功能，请使用该source选项构建修改交互，如果要修改集合中的要素（例如，选择交互使用的集合），请使用该features选项构建交互。`必须使用source或features构建交互`
 `默认情况下，交互将允许在alt 按下键时删除顶点。要配置具有不同删除条件的交互，请使用该deleteCondition选项。`
 `new ol.interaction.Modify(options)`
@@ -547,7 +591,7 @@ options是一个参数对象，如下：
 * deleteCondition  获取module:ol/MapBrowserEventMapBrowserEvent和返回布尔值的函数，以指示是否应该处理该事件。默认情况下， module:ol/events/condition-singleClick与 module:ol/events/conditionaltKeyOnly在顶点缺失的结果。看demo-modifyDifficult.html（先选中后操作）
 
 
-###### snap
+###### <a name="25">Snap</a>
 在修改或绘制矢量要素时处理矢量要素的捕捉。这些功能可以来自一个module:ol/source/Vector或module:ol/Collection-Collection 任何交互对象，允许用户使用鼠标与功能进行交互可以从捕捉中受益，只要它之前添加。
 
 快照交互会修改地图浏览器事件coordinate和pixel 属性，以强制对其进行的任何交互进行快照。
@@ -560,8 +604,8 @@ options:
 
 官方例子`Snap Interaction`
 
-##### 事件
-###### 简单例子
+##### <a name="6">事件</a>
+###### <a name="31">简单例子</a>
 ```javascript
 var map = new ol.Map({
     layers: [
@@ -589,7 +633,7 @@ map.on('singleclick', function(event){
 * 找准事件名称，比如上面例子中的singleclick，切忌不要随便想象，或者按照惯例来写名称-condition，
 * 编写事件响应函数，在OpenLayers中，事件发送者都会有一个名字为on的函数，调用这个函数，就能监听指定的事件，响应函数listener具有一个参数event，这个event类就对应于API文档中事件名称后边括号里的类。
 forEachFeatureAtPixel(pixel, callback, opt_options)
-###### 注销事件
+###### <a name="32">注销事件</a>
 * ```javascript
     // 创建事件监听器
     var singleclickListener = function(event){
@@ -605,7 +649,7 @@ forEachFeatureAtPixel(pixel, callback, opt_options)
         alert('...');
     })
   ```
-###### 自定义事件
+###### <a name="33">自定义事件</a>
 要添加自定义事件，需要知道这样一个事实：ol.Feature继承于ol.Object，而ol.Object具有派发事件(dispatchEvent)和监听事件(on)的功能。 
 
 * dispatchEvent(event) 分发一个事件，并调用侦听此类事件的所有监听器，event参数可以是字符串，也可以是具有type属性的Object
@@ -639,3 +683,12 @@ feature1.on('mousemove', function (event) {
 
 `除了可以通过dispatchEvent({type: 'mousemove', event: event})这种形式派发一个事件之外，还可以通过dispatchEvent('mousemove')这中形式直接发送mousemove事件。`
 
+
+#### <a name="7">总结</a>
+
+openlayers功能很多，有的地方自己因时间有限还没有深入了解，但是大部分是够用了,有大部分都是参考资料的，因为讲的很通透，所以就拿过来了。，`对于openylayers3，一定多看看例子，例子有很多吸收的知识点，特别有用`。有时间后会自己补上这一环节，大家如果有疑问或者我不对的地方请下方评论或私信。大家一起进步加油！
+
+
+#### 参考资料
+[openlayer3](http://openlayers.org/en/latest/apidoc/)
+[OpenLayers 3 Primer](http://anzhihun.coding.me/ol3-primer/index.html)
