@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="../ol/ol.css" type="text/css">
+    </style>
+    <script src="../ol/ol-debug.js"></script>
+    <title>event example</title>
+</head>
+
+<body>
+    <div id="map" style="height:400px;width:100%"></div>
+    <script>
+        // 在原点处创建一个feature
+        var feature1 = new ol.Feature({
+            geometry: new ol.geom.Point([0, 0])
+        });
+
+        // 并设置为半径为100像素的圆，用红色填充
+        feature1.setStyle(new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 100,
+                fill: new ol.style.Fill({
+                    color: 'red'
+                })
+            })
+        }));
+
+        // 在坐标[5000000, 5000000]处创建另一个feature
+        var feature2 = new ol.Feature({
+            geometry: new ol.geom.Point([5000000, 5000000])
+        });
+
+        // 并设置为半径为100像素的圆，用黄色填充
+        feature2.setStyle(new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 100,
+                fill: new ol.style.Fill({
+                    color: 'yellow'
+                })
+            })
+        }));
+
+        // 创建地图
+        var map = new ol.Map({
+            // 设置地图图层
+            layers: [
+                // 创建一个使用Open Street Map地图源的瓦片图层
+                new ol.layer.Tile({ source: new ol.source.OSM() }),
+                // 把之前创建的feature1和feature2放在另一个层里
+                new ol.layer.Vector({
+                    source: new ol.source.Vector({
+                        features: [feature1, feature2]
+                    })
+                })
+            ],
+            // 设置显示地图的视图
+            view: new ol.View({
+                center: [0, 0],    // 定义地图显示中心于经度0度，纬度0度处
+                zoom: 2            // 并且定义地图显示层级为2
+            }),
+            // 让id为map的div作为地图的容器
+            target: 'map'
+        });
+
+        // 为地图注册鼠标移动事件的监听
+        var featureArr = [];
+        map.on('pointermove', function (event) {
+            map.forEachFeatureAtPixel(event.pixel, function (feature) {
+                // 为移动到的feature发送自定义的mousemove消息
+                // feature.dispatchEvent({ type: 'mousemove', event: event });
+                // console.log(event)
+                feature.dispatchEvent({type:'mousein',event:feature});
+            });
+        });
+
+        // 为feature1(之前创建的一个feature)注册自定义事件mousemove的监听
+        feature1.on('mousein', function (event) {
+            // 修改feature的样式为半径100像素的园，用蓝色填充
+            this.setStyle(new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 100,
+                    fill: new ol.style.Fill({
+                        color: 'blue'
+                    })
+                })
+            }));
+            console.log('mousein',event)
+        
+        });
+        
+    </script>
+</body>
+
+</html>

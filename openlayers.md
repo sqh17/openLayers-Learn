@@ -392,7 +392,7 @@ map.addInteraction(new ol.interaction.MouseWheelZoom);
 关于new Interaction(),总共有7个子类，可以用在extend([])中，也可以用addInteraction()
 * DoubleClickZoom interaction，双击放大交互功能；
 * DragAndDrop interaction，以“拖文件到地图中”的交互添加图层；
-* DragBox interaction，拉框，用于划定一个矩形范围，常用于放大地图；
+* DragBox interaction，拉框，用于划定一个矩形范围，例子常用于放大地图；
 * DragPan interaction，拖拽平移地图；
 * DragRotateAndZoom interaction，拖拽方式进行缩放和旋转地图；
 * DragRotate interaction，拖拽方式旋转地图；
@@ -427,10 +427,14 @@ map.addInteraction(new ol.interaction.MouseWheelZoom);
 * pointerMove 指针移动时返回true
 * targetNotEditable 如果目标元素不可编辑，则返回true,即不是input,select或textarea元素false。
 * platformModifierKeyOnly
-* primaryAction 
+* primaryAction 从一个主指针在与表面接触或起源如果按下鼠标左键
 
 **handleEvent(mapBrowserEvent)**
-
+```javascript
+function (mapBrowserEvent){
+    return ol.events.condition.click(mapBrowserEvent) && ol.events.condition.shiftKeyOnly(mapBrowserEvent);
+}
+```
 
 
 ###### Select
@@ -443,7 +447,7 @@ options是个对象参数，包括：
 * condition 类型为 ol.events.ConditionType，规定了什么情况下触发 select 操作，默认不需要特殊条件进行触发。
 * addCondition 
 * removeCondition
-* toggleCondition 获取module:ol/MapBrowserEvent~MapBrowserEvent和返回布尔值的函数，以指示是否应该处理该事件。这是condition事件的补充。默认情况下， module:ol/events/condition~shiftKeyOnly即按下shift以及condition事件，如果当前未选中，则将该功能添加到当前选择，如果是，则将其删除。见add而remove 如果你想使用的，而不是一个触发不同的事件。
+* toggleCondition 获取module:ol/MapBrowserEvent-MapBrowserEvent和返回布尔值的函数，以指示是否应该处理该事件。这是condition事件的补充。默认情况下， module:ol/events/condition-shiftKeyOnly即按下shift以及condition事件，如果当前未选中，则将该功能添加到当前选择，如果是，则将其删除。见add而remove 如果你想使用的，而不是一个触发不同的事件。
 * multi 用于确定默认行为是否应仅在单击的地图位置选择单个feature或所有（重叠）feature。默认值false表示单选。
 * features 
 * filter 过滤 见demo
@@ -539,12 +543,12 @@ options是一个参数对象，如下：
 * source
 * features
 * wrapX
-* insertVertexCondition 一个函数，它接受module:ol/MapBrowserEvent~MapBrowserEvent并返回一个布尔值，以指示是否可以将新顶点添加到草图要素中。默认是module:ol/events/condition~always。  -----待解决
-* deleteCondition  获取module:ol/MapBrowserEvent~MapBrowserEvent和返回布尔值的函数，以指示是否应该处理该事件。默认情况下， module:ol/events/condition~singleClick与 module:ol/events/condition~altKeyOnly在顶点缺失的结果。看demo-按alt键
+* insertVertexCondition 一个函数，它接受module:ol/MapBrowserEventMapBrowserEvent并返回一个布尔值，以指示是否可以将新顶点添加到草图要素中。默认是module:ol/events/condition-always。  同deletCondition
+* deleteCondition  获取module:ol/MapBrowserEventMapBrowserEvent和返回布尔值的函数，以指示是否应该处理该事件。默认情况下， module:ol/events/condition-singleClick与 module:ol/events/conditionaltKeyOnly在顶点缺失的结果。看demo-modifyDifficult.html（先选中后操作）
 
 
 ###### snap
-在修改或绘制矢量要素时处理矢量要素的捕捉。这些功能可以来自一个module:ol/source/Vector或module:ol/Collection~Collection 任何交互对象，允许用户使用鼠标与功能进行交互可以从捕捉中受益，只要它之前添加。
+在修改或绘制矢量要素时处理矢量要素的捕捉。这些功能可以来自一个module:ol/source/Vector或module:ol/Collection-Collection 任何交互对象，允许用户使用鼠标与功能进行交互可以从捕捉中受益，只要它之前添加。
 
 快照交互会修改地图浏览器事件coordinate和pixel 属性，以强制对其进行的任何交互进行快照。
 `new ol.interaction.Snap(options)`   看API
@@ -554,5 +558,84 @@ options:
 * vertex 捕捉到顶点。默认值是true
 * source 捕捉此来源的功能。应提供此选项或功能
 
+官方例子`Snap Interaction`
 
-##### forEachFeatureAtPixel(pixel, callback, opt_options)
+##### 事件
+###### 简单例子
+```javascript
+var map = new ol.Map({
+    layers: [
+        new ol.layer.Tile({
+        source: new ol.source.OSM()
+        })
+    ],
+    target: 'map',
+    view: new ol.View({
+        center: ol.proj.transform(
+            [104, 30], 'EPSG:4326', 'EPSG:3857'),
+        zoom: 10
+    })
+});
+
+// 监听singleclick事件
+map.on('singleclick', function(event){
+    // 通过getEventCoordinate方法获取地理位置，再转换为wgs84坐标，并弹出对话框显示
+    alert(ol.proj.transform(map.getEventCoordinate(event), 'EPSG:3857', 'EPSG:4326'));
+})
+```
+任意的事件应用，必然会有三个步骤：
+
+* 找准事件发送者，比如上面这个例子，map就是事件发送者。 如何找到它呢？ 一般都是要交互的对象。
+* 找准事件名称，比如上面例子中的singleclick，切忌不要随便想象，或者按照惯例来写名称-condition，
+* 编写事件响应函数，在OpenLayers中，事件发送者都会有一个名字为on的函数，调用这个函数，就能监听指定的事件，响应函数listener具有一个参数event，这个event类就对应于API文档中事件名称后边括号里的类。
+forEachFeatureAtPixel(pixel, callback, opt_options)
+###### 注销事件
+* ```javascript
+    // 创建事件监听器
+    var singleclickListener = function(event){
+        alert('...');
+        // 在响应一次后，注销掉该监听器
+        map.un('singleclick', singleclickListener);
+    };
+    map.on('singleclick', singleclickListener);
+  ```
+* ```javascript
+    // 使用once函数，只会响应一次事件，之后自动注销事件监听
+    map.once('singleclick', function(event){
+        alert('...');
+    })
+  ```
+###### 自定义事件
+要添加自定义事件，需要知道这样一个事实：ol.Feature继承于ol.Object，而ol.Object具有派发事件(dispatchEvent)和监听事件(on)的功能。 
+
+* dispatchEvent(event) 分发一个事件，并调用侦听此类事件的所有监听器，event参数可以是字符串，也可以是具有type属性的Object
+* on(type, listener) 触发type类型的监听器。
+
+```javascript
+// 为地图注册鼠标移动事件的监听
+map.on('pointermove', function (event) {
+    map.forEachFeatureAtPixel(event.pixel, function (feature) {
+        // 为移动到的feature发送自定义的mousemove消息
+        feature.dispatchEvent({ type: 'mousemove', event: event });
+        // feature.dispatchEvent('mousemove');
+    });
+});
+
+// 为feature1(之前创建的一个feature)注册自定义事件mousemove的监听
+feature1.on('mousemove', function (event) {
+    // 修改feature的样式为半径100像素的园，用蓝色填充
+    this.setStyle(new ol.style.Style({
+        image: new ol.style.Circle({
+            radius: 100,
+            fill: new ol.style.Fill({
+                color: 'blue'
+            })
+        })
+    }));
+});
+```
+    
+    dispatchEvent的参数具有type和event属性，必须这样构造吗？在回答这个问题之前，需要先看一下API文档，发现参数类型为goog.events.EventLike，说明它其实用的是google的closure库来实现的，通过closure库的源码我们知道，派发的事件如果是一个对象，那么必须包含type属性，用于表示事件类型。其他的属性可以自由定义，比如此处定义了event属性，并设置对应的值，为的是让鼠标事件传递给feature1的监听函数。dispatchEvent的参数会被原封不动的传递给事件响应函数，对应代码`feature1.on('mousemove', function(event){}`里参数event，可以通过调试窗口看到此处的event和dispatchEvent的参数是一样的。注意事件名称是可以自定义的，只要派发和监听使用的事件名称是一致的就可以。
+
+`除了可以通过dispatchEvent({type: 'mousemove', event: event})这种形式派发一个事件之外，还可以通过dispatchEvent('mousemove')这中形式直接发送mousemove事件。`
+

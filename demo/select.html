@@ -50,16 +50,20 @@
         map.addInteraction(selectSingleClick);
         // 监听选中事件，然后在事件处理函数中改变被选中的`feature`的样式
         selectSingleClick.on('select', function (event) {
-            event.selected[0].setStyle(new ol.style.Style({
-                image: new ol.style.Circle({
-                    radius: 10,
-                    fill: new ol.style.Fill({
-                        color: 'blue'
+            console.log(selectSingleClick.getFeatures()) // 获取选中的feature
+            console.log(event.selected)
+            if(event.selected.length != 0){
+                event.selected[0].setStyle(new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: 10,
+                        fill: new ol.style.Fill({
+                            color: 'blue'
+                        })
                     })
-                })
-            }));
+                }));
+            }
         })
-
+        
     </script>
 
 </body>

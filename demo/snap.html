@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="../ol/ol.css" type="text/css">
     </style>
     <script src="../ol/ol-debug.js"></script>
-    <title>modify example</title>
+    <title>snap example</title>
 </head>
 
 <body>
@@ -42,6 +42,7 @@
         map.addLayer(drawLayer)
         var typeSelect = document.getElementById('type');
         var draw = null;
+        var snap = null;
         function addInteraction() {
             var value = typeSelect.value;
             if (value !== 'None') {
@@ -50,16 +51,28 @@
                     type: typeSelect.value
                 });
                 map.addInteraction(draw);
+                
+            }
+            if(typeSelect.value != 'Point'){
+                snap = new ol.interaction.Snap({
+                    type: typeSelect.value,
+                    edge:false,
+                    vertex:false,
+                    source:drawLayer.getSource(),
+                });
+                map.addInteraction(snap);
             }
         }
 
         typeSelect.onchange = function () {
             map.removeInteraction(draw);
+            map.removeInteraction(snap);
             addInteraction();
         };
         addInteraction();
          // 绘制结束时进行回调
          var feature=null;
+         
          draw.addEventListener('drawend', function (evt) {
             // 获取绘制图形的所有坐标点（终止点是起始点）
             feature = evt.feature
@@ -67,11 +80,15 @@
             var coordinate = geometry.getCoordinates()
             // console.log(coordinate)
             var lent = coordinate[0].length // 坐标点个数
+            
+            console.log(evt)
         })
+        
         var modify = new ol.interaction.Modify({
-            source:drawLayer.getSource()
+            source:drawLayer.getSource(),
+            
         })
-        map.addInteraction(modify);
+        map.addInteraction(modify)
     </script>
 
     </script>

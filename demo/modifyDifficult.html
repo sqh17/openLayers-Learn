@@ -50,14 +50,28 @@
             view: new ol.View({
                 center: [-11000000, 4600000],
                 zoom: 4
+            }),
+            controls: ol.control.defaults({
+                attribution: false, // 信息false
+                rotate: false,    // 旋转false
+                zoom: false      //   缩放false
+            }),
+            interactions:ol.interaction.defaults({
+                mouseWheelZoom: false, // 取消滚动鼠标中间的滑轮交互
+                shiftDragZoom: false, // 取消shift+wheel左键拖动交互
+                DragRotate:false,
+                DoubleClickZoom:false,
             })
         });
 
-        var modify = new ol.interaction.Modify({ 
+        var modify = new ol.interaction.Modify({
             source: source,
-            // deleteCondition:function(mapBrowserEvent) {
-            //     return ol.mapBrowserEvent.click(mapBrowserEvent) && ol.mapBrowserEvent.shiftKeyOnly(mapBrowserEvent);
+            // condition: function (mapBrowserEvent) {
+            //     return ol.events.condition.mouseOnly(mapBrowserEvent)
             // }
+            deleteCondition:function(mapBrowserEvent) {
+                return ol.events.condition.click(mapBrowserEvent) && ol.events.condition.shiftKeyOnly(mapBrowserEvent);
+            }
         });
         map.addInteraction(modify);
 
